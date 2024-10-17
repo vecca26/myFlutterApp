@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../main.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 class MyWidget extends StatefulWidget {
   const MyWidget({super.key});
@@ -13,7 +15,8 @@ class _MyWidgetState extends State<MyWidget>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   String? _authToken;
-
+  String imageUrl =
+      'https://images.dog.ceo/breeds/deerhound-scottish/n02092002_854.jpg';
   @override
   void initState() {
     super.initState();
@@ -32,9 +35,25 @@ class _MyWidgetState extends State<MyWidget>
   void _handleTabSelection() async {
     if (_tabController.indexIsChanging) {
       if (_tabController.index == 2) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const LoginPage()),
+        showDialog(
+          context: context,
+          builder: (BuildContext context) => AlertDialog(
+            title: const Text('Are You sure?'),
+            content: const Text('AlertDialog description'),
+            actions: <Widget>[
+              TextButton(
+                onPressed: () => Navigator.pop(context, 'NO'),
+                child: const Text('No'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (context) => const LoginPage()),
+                ),
+                child: const Text('Yes'),
+              ),
+            ],
+          ),
         );
       }
     }
@@ -47,24 +66,14 @@ class _MyWidgetState extends State<MyWidget>
     });
   }
 
-  _clickMe(int value) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) => AlertDialog(
-        title: const Text('AlertDialog Title'),
-        content: const Text('AlertDialog description'),
-        actions: <Widget>[
-          TextButton(
-            onPressed: () => Navigator.pop(context, 'Cancel'),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, 'OK'),
-            child: const Text('OK'),
-          ),
-        ],
-      ),
-    );
+  _clickMe() async {
+    var url = Uri.parse('https://dog.ceo/api/breeds/image/random');
+    var response = await http.get(url);
+    var data = jsonDecode(response.body);
+    setState(() {
+      imageUrl = data['message'];
+    });
+    print(imageUrl);
   }
 
   @override
@@ -100,50 +109,30 @@ class _MyWidgetState extends State<MyWidget>
                 ],
               ),
             ),
-            GridView.builder(
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2, // Number of columns in the grid
-                crossAxisSpacing: 8.0, // Spacing between columns
-                mainAxisSpacing: 8.0, // Spacing between rows
-                childAspectRatio: 3 / 2, // Aspect ratio of each grid item
-              ),
-              itemCount: 20,
-              itemBuilder: (context, index) {
-                return Card(
-                  elevation: 4.0, // Elevation of the card
-                  child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          'Block $index',
-                          style: Theme.of(context).textTheme.headlineSmall,
-                        ),
-                        const SizedBox(height: 20),
-                        Image.asset(
-                          '../assets/Patient-Care.jpg',
-                          fit: BoxFit.contain,
-                        ),
-                        const SizedBox(height: 20),
-                        MouseRegion(
-                          cursor: SystemMouseCursors.click,
-                          child: ElevatedButton(
-                            onPressed: () => _clickMe(index),
-                            style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color.fromARGB(
-                                    255, 52, 141, 243) // Set background color
-                                ),
-                            child: const Text(
-                              'click Me',
-                              style: TextStyle(
-                                color: Color.fromARGB(255, 9, 9, 233),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ]),
-                );
-              },
-            ),
+            Column(children: [
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    SizedBox(
+                      width: 600, // Set the desired width
+                      height: 400, // Set the desired height
+                      child: Image(
+                        image: NetworkImage(imageUrl),
+                        fit: BoxFit
+                            .cover, // Optional: adjust the fit of the image
+                      ),
+                    ),
+                    const SizedBox(height: 16.0),
+                    ElevatedButton(
+                      onPressed: _clickMe,
+                      child: const Text('Click here'),
+                    ),
+                  ],
+                ),
+              )
+            ])
           ],
         ));
   }
